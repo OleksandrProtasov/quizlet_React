@@ -1,6 +1,6 @@
 {
-  "homepage":"http:/johnyfours.github.io/quizlet_React",
-  "name": "counter",
+  "homepage": "https://oleksandrprotasov.github.io/quizlet_React",
+  "name": "pulse-quiz",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

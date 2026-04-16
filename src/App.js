@@ -1,88 +1,72 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './index.scss';
+import { HomeScreen } from './screens/HomeScreen';
+import { GameScreen } from './screens/GameScreen';
+import { ResultScreen } from './screens/ResultScreen';
+import { loadTheme, saveTheme, saveBestIfBetter } from './utils/storage';
 
-const questions = [
-  {
-    title: 'Inside which HTML element do we put the JavaScript?',
-    variants: ['js', 'scripting', 'script'],
-    correct: 2,
-  },
-  {
-    title: ' What is the correct JavaScript syntax to write "Hello World"? ',
-    variants: [' response.write("Hello World")', '"Hello World"', 'document.write("Hello World")'],
-    correct: 2,
-  },
-  {
-    title: 'Where is the correct place to insert a JavaScript?',
-    variants: [
-      'Both the <head> section and the <body> section are correctL',
-      'The <body> section',
-      'The <head> section',
-    ],
-    correct: 1,
-  },
-];
+export default function App() {
+  const [theme, setTheme] = useState(loadTheme);
+  const [screen, setScreen] = useState('home');
+  const [deck, setDeck] = useState(null);
+  const [lastRun, setLastRun] = useState(null);
+  const [runKey, setRunKey] = useState(0);
 
-function Result({ correct }) {
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    saveTheme(theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  };
+
+  const startDeck = (d) => {
+    setDeck(d);
+    setRunKey((k) => k + 1);
+    setScreen('game');
+  };
+
+  const handleFinish = (run) => {
+    if (!deck) return;
+    const newRecord = saveBestIfBetter(deck.id, run.correct, run.total);
+    setLastRun({ ...run, newRecord });
+    setScreen('result');
+  };
+
   return (
-    <div className="result">
-      <img src="https://cdn-icons-png.flaticon.com/512/2278/2278992.png" />
-      <h2>Well Done! You have {correct} out of {questions.length} correct answers</h2>
-      <a href='/'>
-        <button>Try Again</button>
-      </a>
+    <div className="app-root">
+      {screen === 'home' && (
+        <HomeScreen theme={theme} onToggleTheme={toggleTheme} onSelectDeck={startDeck} />
+      )}
+
+      {screen === 'game' && deck && (
+        <GameScreen
+          key={`${deck.id}-${runKey}`}
+          deck={deck}
+          onExit={() => {
+            setScreen('home');
+            setDeck(null);
+          }}
+          onFinish={handleFinish}
+        />
+      )}
+
+      {screen === 'result' && deck && lastRun && (
+        <ResultScreen
+          deck={deck}
+          run={lastRun}
+          onReplay={() => {
+            setRunKey((k) => k + 1);
+            setScreen('game');
+          }}
+          onHome={() => {
+            setScreen('home');
+            setDeck(null);
+            setLastRun(null);
+          }}
+        />
+      )}
     </div>
   );
 }
-
-function Game({ question, onClickVAriant, step }) {
-  const percentage = Math.round((step / questions.length) * 100);
-
-  return (
-    <>
-      <div className="progress">
-        <div style={{ width: `${percentage}%` }} className="progress__inner"></div>
-      </div>
-      <h1>{question.title}</h1>
-      <ul>
-        {
-          question.variants.map((text, index) => (
-            <li key={text} onClick={() => onClickVAriant(index)}>{text}</li>
-          ))
-        }
-
-
-      </ul>
-    </>
-  );
-}
-
-function App() {
-
-
-  const [step, setStep] = useState(0);
-  const [correct, setCorrect] = useState(0);
-
-  const onClickVAriant = (index) => {
-    setStep(step + 1);
-
-    if (index === question.correct) {
-      setCorrect(correct + 1);
-    }
-  }
-
-  const question = questions[step];
-
-  return (
-    <div className="App">
-      {
-        step !== questions.length ? (
-          <Game question={question} onClickVAriant={onClickVAriant} step={step} />
-        ) : (
-          <Result correct={correct} />
-        )}
-    </div>
-  );
-}
-
-export default App;
